@@ -1,3 +1,4 @@
+use constant_time_eq::constant_time_eq;
 
 /// Fixed initial state for the toy hash. Any constant works.
 const IV: u64 = 0x0123_4567_89ab_cdef;
@@ -67,6 +68,18 @@ fn hash(data: &[u8]) -> u64 {
     hash_from(IV, data, data.len())
 }
 
+/// Naive MAC: H(K || M). Vulnerable to length extension.
+pub fn mac(key: &[u8], msg: &[u8]) -> u64 {
+    let mut hash_data = key.to_vec();
+    hash_data.extend_from_slice(msg);
+
+    hash(hash_data.as_slice())
+}
+
+/// Constant-time tag check.
+pub fn verify_mac(key: &[u8], msg: &[u8], tag: u64) -> bool {
+    constant_time_eq(&mac(key, msg).to_be_bytes(), &tag.to_be_bytes())
+}
 
 #[cfg(test)]
 mod tests {
