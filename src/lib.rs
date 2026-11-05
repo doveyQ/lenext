@@ -81,6 +81,18 @@ pub fn verify_mac(key: &[u8], msg: &[u8], tag: u64) -> bool {
     constant_time_eq(&mac(key, msg).to_be_bytes(), &tag.to_be_bytes())
 }
 
+/// Forges a tag for msg || glue || extra without the key.
+pub fn forge(msg: &[u8], tag: u64, key_len: usize, extra: &[u8]) -> (Vec<u8>, u64) {
+    let glue = pad(key_len + msg.len());
+    let mut ext = msg.to_vec();
+    ext.extend_from_slice(&glue);
+    ext.extend_from_slice(extra);
+    let forged_msg = ext;
+    let forged_tag = hash_from(tag, extra, key_len + forged_msg.len());
+
+    (forged_msg, forged_tag)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -89,5 +101,17 @@ mod tests {
     fn pad_works() {
         let result = pad(5);
         assert_eq!(result, vec![0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x28]);    
+    }
+
+    #[test]
+    fn forgery_verifies() {
+        let key = b"thisisnosecretkey";
+        let msg = b"helloworld";
+        let extra = b"buttface";
+
+        let tag = mac(key, msg);
+        let (forged_msg, forged_tag) = forge(msg, tag, key.len(), extra);
+
+        assert!(verify_mac(key, &forged_msg, forged_tag));
     }
 }
