@@ -1,4 +1,5 @@
 use constant_time_eq::constant_time_eq;
+pub mod ascon;
 
 /// Fixed initial state for the toy hash. Any constant works.
 const IV: u64 = 0x0123_4567_89ab_cdef;
